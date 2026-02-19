@@ -80,6 +80,12 @@ return {
 			},
 		})
 
-		vim.lsp.codelens.enable(true)
+		vim.api.nvim_create_autocmd("LspAttach", {
+			callback = function(arg)
+				vim.lsp.codelens.enable(true, {
+					bufnr = arg.buf,
+				})
+			end,
+		})
 	end,
 }
