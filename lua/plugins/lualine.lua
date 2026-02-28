@@ -4,6 +4,18 @@ return {
 		{ "nvim-tree/nvim-web-devicons" },
 	},
 	config = function()
+		local function lsp_status()
+			local clients = vim.lsp.get_clients({ bufnr = 0 })
+			if #clients == 0 then
+				return ""
+			end
+			local names = {}
+			for _, client in ipairs(clients) do
+				table.insert(names, client.name)
+			end
+			return "LSP: " .. table.concat(names, ", ")
+		end
+
 		require("lualine").setup({
 			options = {
 				icons_enabled = true,
@@ -33,7 +45,7 @@ return {
 				lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
 				lualine_c = {
 					{
-						"lsp_status",
+						lsp_status,
 						icon = "", -- f013
 					},
 				},
@@ -49,7 +61,7 @@ return {
 			inactive_sections = {
 				lualine_a = { { "mode", icon = "" } },
 				lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
-				lualine_c = { "lsp_status" },
+				lualine_c = { lsp_status },
 				lualine_x = {
 					"diagnostics",
 					"filesize",

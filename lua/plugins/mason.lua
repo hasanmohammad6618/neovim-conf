@@ -47,7 +47,7 @@ return {
 			"css-lsp",
 			"taplo",
 			"ruff",
-			"ty",
+			"typos-lsp",
 			"marksman",
 			"tinymist",
 			"jdtls",
@@ -61,26 +61,14 @@ return {
 			"uv",
 			"gitui",
 		}
-		local mpkgs = {}
-		table.move(lsp_pkg, 1, #lsp_pkg, 1, mpkgs)
-		table.move(other_pkg, 1, #other_pkg, #mpkgs + 1, mpkgs)
+		local mpkgs = vim.list_extend(lsp_pkg, other_pkg)
 
 		local mr = require("mason-registry")
 		mr.refresh(function()
 			for _, pkg_name in ipairs(mpkgs) do
 				local pkg = mr.get_package(pkg_name)
 				if not pkg:is_installed() then
-					pkg:install({}, function(success, _)
-						if success then
-							vim.defer_fn(function()
-								local instance = require("mason.ui.instance")
-								-- Only notify if Mason UI is NOT open
-								if instance.window.is_open() == false then
-									return
-								end
-							end, 5)
-						end
-					end)
+					pkg:install()
 				end
 			end
 		end)
