@@ -144,7 +144,7 @@ return {
 				},
 			},
 		}
-		require("blink-cmp").setup(opt --[[@as blink.cmp.Config]])
+		require("blink-cmp").setup(opt)
 	end,
 
 	-- LSP servers and clients communicate which features they support through "capabilities".
