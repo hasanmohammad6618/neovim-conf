@@ -3,12 +3,12 @@ return {
 	config = function()
 		require("rainbow-delimiters.setup").setup({
 			highlight = {
-				"RainbowDelimiterViolet",
 				"RainbowDelimiterRed",
 				"RainbowDelimiterYellow",
 				"RainbowDelimiterBlue",
 				"RainbowDelimiterOrange",
 				"RainbowDelimiterGreen",
+				"RainbowDelimiterViolet",
 				"RainbowDelimiterCyan",
 			},
 		})
