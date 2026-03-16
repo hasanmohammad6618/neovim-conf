@@ -32,10 +32,7 @@ return {
 				table.insert(parsers_to_ins, p)
 			end
 		end
-		local ts = require("mason-registry").is_installed("tree-sitter-cli")
-		if ts then
-			require("nvim-treesitter").install(parsers_to_ins)
-		end
+		require("nvim-treesitter").install(parsers_to_ins)
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = parsers,
 			callback = function(arg)
