@@ -80,6 +80,6 @@ return {
 			},
 		})
 
-		vim.lsp.codelens.enable(true)
+		vim.lsp.codelens.refresh()
 	end,
 }
