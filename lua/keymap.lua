@@ -20,15 +20,3 @@ end)
 vim.keymap.set({ "n", "i" }, "<C-f>", function()
 	vim.cmd("NvimTreeToggle")
 end)
-vim.keymap.set({ "n", "i", "c", "v" }, "<C-e>", function()
-	Snacks.picker.explorer({
-		git_status = true,
-		watch = true,
-		git_untracked = true,
-		ignored = true,
-		hidden = true,
-		diagnostics_open = true,
-		git_status_open = true,
-		show_empty = true,
-	})
-end, { remap = false })
