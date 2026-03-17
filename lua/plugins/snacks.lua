@@ -246,13 +246,10 @@ return {
 				debounce = 30,
 			},
 			styles = {
-				notifier = {
-					fixbuf = true,
-				},
 				notification = {
 
-					fixbuf = true,
 					border = "double",
+
 					wo = {
 						winblend = 0,
 						wrap = true,
