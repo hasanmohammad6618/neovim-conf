@@ -1,84 +1,143 @@
--- =================================================================
--- Enhanced LSP Progress Handler (Fixed Brackets + Duplication + Timers)
--- =================================================================
+-- LSP Progress Handler – robust version
+-- -------------------------------------------------------------
+-- Author: <your name>
+-- Date: 2026-03-20
+-- -------------------------------------------------------------
 
----@class LspProgressCacheEntry
----@field spinner_idx integer
----@field title string
----@field message string
----@field percentage number
----@field work_done integer
----@field total_work integer|nil
----@field report_count integer
----@field start_time number
----@field client_id integer
----@field server_name string
----@field timer uv.uv_timer_t|nil  -- Track timer to prevent leaks
-
----@class LspProgressHandlerModule: table
 local M = {}
 
----@type string[]
-local SPINNERS = { "◜ ", "◠ ", "◝ ", "◞ ", "◡ ", "◟ " }
-local SPINNER_COUNT = #SPINNERS
-local NOTIFICATION_PREFIX = "lsp_progress_"
-local CLEANUP_DELAY_MS = 3100
+-- -----------------------------------------------------------------
+-- Default configuration (override via M.setup)
+-- -----------------------------------------------------------------
+local config = {
+	spinners = { "◜ ", "◠ ", "◝ ", "◞ ", "◡ ", "◟ " },
+	cleanup_delay_ms = 3100,
+	notification_prefix = "lsp_progress_",
+	notification_icon = " ",
+	notification_timeout = 1800,
+	debug = false,
+	on_progress = nil, -- optional user callback (cache_entry, is_end)
+}
 
----@type table<string|integer, LspProgressCacheEntry>
-local progress_cache = {}
-
----Generate notification ID from token
----@param token string|integer
----@return string
-local function get_notification_id(token)
-	return NOTIFICATION_PREFIX .. tostring(token)
+-- -----------------------------------------------------------------
+-- Helper utilities
+-- -----------------------------------------------------------------
+local function trim(s)
+	return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
----Show notification using Snacks notifier
----@param content string
----@param id string
----@param is_end boolean
-local function show_notification(content, id, is_end)
-	-- Safer global access check for Snacks
-	if type(_G.Snacks) ~= "table" or not _G.Snacks.notifier then
+local function clamp(v, lo, hi)
+	if v < lo then
+		return lo
+	end
+	if v > hi then
+		return hi
+	end
+	return v
+end
+
+local function debug(msg)
+	if config.debug then
+		vim.notify("[LSP Progress] " .. msg, vim.log.levels.DEBUG)
+	end
+end
+
+-- Escape pattern safely – works even when vim.pesc is unavailable
+local function escape_pattern(str)
+	if vim.pesc then
+		return vim.pesc(str)
+	end
+	-- Fallback: escape all non‑alphanumeric characters
+	return str:gsub("([^%w])", "%%%1")
+end
+
+-- -----------------------------------------------------------------
+-- Public configuration API
+-- -----------------------------------------------------------------
+function M.setup(opts)
+	vim.validate({ opts = { opts, "table", true } })
+	if not opts then
 		return
 	end
-	_G.Snacks.notifier.notify(content, "info", {
-		icon = " ",
-		id = id,
-		timeout = is_end and 1800 or 0,
-		title = "LSP Progress",
-	})
-end
 
----Clean up notification by ID
----@param id string
-local function cleanup_notification(id)
-	if type(_G.Snacks) == "table" and _G.Snacks.notifier and type(_G.Snacks.notifier.hide) == "function" then
-		_G.Snacks.notifier.hide(id)
+	vim.validate({
+		spinners = { opts.spinners, "table", true },
+		cleanup_delay_ms = { opts.cleanup_delay_ms, "number", true },
+		notification_prefix = { opts.notification_prefix, "string", true },
+		notification_icon = { opts.notification_icon, "string", true },
+		notification_timeout = { opts.notification_timeout, "number", true },
+		debug = { opts.debug, "boolean", true },
+		on_progress = { opts.on_progress, "function", true },
+	})
+
+	for k, v in pairs(opts) do
+		config[k] = v
 	end
 end
 
----Extract work progress from message string
----@param message string|nil
----@return integer|nil done
----@return integer|nil total
+-- -----------------------------------------------------------------
+-- Internal state
+-- -----------------------------------------------------------------
+local progress_cache = {} -- token → entry
+local stale_timer = nil -- periodic purge timer
+
+-- -----------------------------------------------------------------
+-- Notification helpers
+-- -----------------------------------------------------------------
+local function get_notification_id(token)
+	return config.notification_prefix .. tostring(token)
+end
+
+local function show_notification(content, id, is_end)
+	if type(_G.Snacks) == "table" and _G.Snacks.notifier then
+		local opts = {
+			icon = config.notification_icon,
+			id = id,
+			timeout = is_end and config.notification_timeout or 0,
+			title = "LSP Progress",
+		}
+		pcall(function()
+			_G.Snacks.notifier.notify(content, "info", opts)
+		end)
+	else
+		-- Simple fallback using vim.notify
+		local fallback = config.notification_icon .. " " .. content
+		vim.notify(
+			fallback,
+			vim.log.levels.INFO,
+			{ title = "LSP Progress", timeout = is_end and config.notification_timeout or 0 }
+		)
+	end
+end
+
+local function cleanup_notification(id)
+	if type(_G.Snacks) == "table" and _G.Snacks.notifier and type(_G.Snacks.notifier.hide) == "function" then
+		pcall(function()
+			_G.Snacks.notifier.hide(id)
+		end)
+	end
+end
+
+-- -----------------------------------------------------------------
+-- Message parsing
+-- -----------------------------------------------------------------
 local function extract_work_progress(message)
 	if not message then
 		return nil, nil
 	end
 
-	-- Patterns in order of specificity
 	local patterns = {
-		{ "^%s*(%d+)%s*/%s*(%d+)%s*$" }, -- "10/100"
-		{ "^%s*(%d+)%s+of%s+(%d+)%s*$" }, -- "10 of 100"
-		{ "^Processing file%s+(%d+)%s+of%s+(%d+)" }, -- "Processing file 10 of 100"
-		{ "%f[%d](%d+)%s+items?%s+processed" }, -- "10 items processed"
-		{ "%f[%d](%d+)%s*/%s*(%d+)" }, -- More lenient pattern
+		"^%s*(%d+)%s*/%s*(%d+)%s*$", -- "10/100"
+		"^%s*(%d+)%s+of%s+(%d+)%s*$", -- "10 of 100"
+		"^Processing file%s+(%d+)%s+of%s+(%d+)", -- "Processing file 3 of 10"
+		"%f[%d](%d+)%s+items?%s+processed", -- "5 items processed"
+		"%f[%d](%d+)%s*/%s*(%d+)", -- "5/10"
+		"^(%d+)%s*%%$", -- "45%"
+		"^(%d+)%s*%%?%s*of%s*%d+", -- "45% of 100"
 	}
 
-	for _, pattern in ipairs(patterns) do
-		local done, total = message:match(pattern[1])
+	for _, pat in ipairs(patterns) do
+		local done, total = message:match(pat)
 		if done then
 			return tonumber(done), total and tonumber(total)
 		end
@@ -86,182 +145,58 @@ local function extract_work_progress(message)
 	return nil, nil
 end
 
----Check if message is redundant with title
----@param title string
----@param message string
----@return boolean
+-- -----------------------------------------------------------------
+-- Redundancy check (safe against nil and missing vim.pesc)
+-- -----------------------------------------------------------------
 local function is_message_redundant(title, message)
-	if title == "" or message == "" then
+	if not title or not message or title == "" or message == "" then
 		return false
 	end
-
-	-- Normalize strings: trim, lower case, remove trailing punctuation
-	local function normalize(str)
-		return str:gsub("[%.…%s]+$", ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
-	end
-
-	local norm_title = normalize(title)
-	local norm_message = normalize(message)
-
-	-- Direct equality
+	local norm_title = trim(title):lower()
+	local norm_message = trim(message):lower()
 	if norm_message == norm_title then
 		return true
 	end
-
-	-- Message starts with title
-	if norm_message:find("^" .. vim.pesc(norm_title), 1, true) then
+	if norm_message:find("^" .. escape_pattern(norm_title), 1, true) then
 		return true
 	end
-
 	return false
 end
 
----Get reliable server name with fallbacks
----@param client table
----@return string
+-- -----------------------------------------------------------------
+-- Server name resolution
+-- -----------------------------------------------------------------
 local function get_reliable_server_name(client)
-	-- Priority order for server name
 	local candidates = {
 		client.name,
 		client.server_info and client.server_info.name,
 		client.config and client.config.name,
 		"LSP-" .. tostring(client.id),
 	}
-
-	for _, candidate in ipairs(candidates) do
-		if candidate and candidate ~= "" then
-			return candidate
+	for _, c in ipairs(candidates) do
+		if c and c ~= "" then
+			return c
 		end
 	end
-
 	return "LSP"
 end
 
----Update cache entry with progress data
----@param cache_entry LspProgressCacheEntry
----@param progress table
----@param kind "begin"|"report"|"end"
-local function update_cache_entry(cache_entry, progress, kind)
-	if kind == "report" then
-		cache_entry.spinner_idx = (cache_entry.spinner_idx % SPINNER_COUNT) + 1
-		cache_entry.report_count = cache_entry.report_count + 1
-	elseif kind == "end" then
-		cache_entry.spinner_idx = 1
-		cache_entry.percentage = 100
-		if cache_entry.total_work and cache_entry.total_work > 0 then
-			cache_entry.work_done = cache_entry.total_work
-		end
-	end
-
-	-- Update message if provided
-	if progress.message then
-		cache_entry.message = progress.message
-	end
-
-	-- Extract work progress from message
-	local done, total = extract_work_progress(progress.message)
-	if done then
-		cache_entry.work_done = done
-		if total then
-			cache_entry.total_work = total
-		end
-		if cache_entry.total_work and cache_entry.total_work > 0 then
-			cache_entry.percentage = math.min((done / cache_entry.total_work) * 100, 100)
-		end
-	end
-
-	-- Apply percentage if directly provided
-	if progress.percentage then
-		cache_entry.percentage = progress.percentage
-	end
-
-	-- Calculate estimated percentage if not provided
-	if kind == "report" and not progress.percentage and not done then
-		local report_progress = math.min(cache_entry.report_count * 5, 50)
-		local elapsed_ms = (vim.uv.hrtime() - cache_entry.start_time) / 1e6
-		local time_progress = math.min(elapsed_ms / 600, 50)
-		cache_entry.percentage = math.min(report_progress + time_progress, 99)
-	end
-end
-
----Build notification content from cache entry
----@param cache_entry LspProgressCacheEntry
----@param is_end boolean
----@return string
-local function build_notification_content(cache_entry, is_end)
-	local components = {}
-	local spinner = is_end and "✓ " or SPINNERS[cache_entry.spinner_idx]
-
-	table.insert(components, spinner)
-	table.insert(components, "[" .. (cache_entry.server_name ~= "" and cache_entry.server_name or "LSP") .. "]")
-
-	if cache_entry.title ~= "" then
-		table.insert(components, cache_entry.title)
-	end
-
-	if cache_entry.total_work and cache_entry.total_work > 0 then
-		table.insert(components, string.format("%d/%d", cache_entry.work_done, cache_entry.total_work))
-	elseif cache_entry.message ~= "" and not is_message_redundant(cache_entry.title, cache_entry.message) then
-		table.insert(components, cache_entry.message)
-	end
-
-	table.insert(components, string.format("(%.0f%%)", math.min(cache_entry.percentage or 0, 100)))
-	return table.concat(components, " ")
-end
-
----Schedule cleanup for completed progress
----@param token string|integer
----@param notification_id string
-local function schedule_cleanup(token, notification_id)
-	local entry = progress_cache[token]
-	if not entry then
-		return
-	end
-
-	-- Cancel existing timer if one is already running for this token
-	if entry.timer and not entry.timer:is_closing() then
-		entry.timer:stop()
-		entry.timer:close()
-	end
-
-	local timer = vim.uv.new_timer()
-	if not timer then
-		return
-	end
-
-	entry.timer = timer -- Store timer in entry
-
-	timer:start(
-		CLEANUP_DELAY_MS,
-		0,
-		vim.schedule_wrap(function()
-			if not timer:is_closing() then
-				cleanup_notification(notification_id)
-				progress_cache[token] = nil
-				timer:close()
-			end
-		end)
-	)
-end
-
----Handle begin progress event
----@param client table
----@param progress table
----@param token string|integer
----@return LspProgressCacheEntry|nil
+-- -----------------------------------------------------------------
+-- Cache entry handling
+-- -----------------------------------------------------------------
 local function handle_begin_progress(client, progress, token)
 	local server_name = get_reliable_server_name(client)
 
-	-- If a token is reused, clear old timer before overwriting
-	if progress_cache[token] and progress_cache[token].timer then
-		local old_timer = progress_cache[token].timer
-		if not old_timer:is_closing() then
-			old_timer:stop()
-			old_timer:close()
-		end
+	-- Cancel any pre‑existing timer for the same token
+	local old = progress_cache[token]
+	if old and old.timer and not old.timer:is_closing() then
+		pcall(function()
+			old.timer:stop()
+			old.timer:close()
+		end)
 	end
 
-	local cache_entry = {
+	progress_cache[token] = {
 		spinner_idx = 1,
 		title = progress.title or "",
 		message = progress.message or "",
@@ -274,109 +209,266 @@ local function handle_begin_progress(client, progress, token)
 		server_name = server_name,
 		timer = nil,
 	}
-
-	progress_cache[token] = cache_entry
-	return cache_entry
+	return progress_cache[token]
 end
 
----Validate progress parameters
----@param result any
----@param ctx table
----@return boolean, table|nil, table|nil, string|integer|nil, string|nil
-local function validate_progress_params(result, ctx)
-	local client = vim.lsp.get_client_by_id(ctx.client_id)
-	if not client then
-		return false
-	end
-
-	local progress = result.value
-	local token = result.token
-	local kind = progress and progress.kind
-
-	if not kind then
-		return false
-	end
-
-	return true, client, progress, token, kind
-end
-
----Main LSP progress handler
----@param _ any
----@param result {token: string|integer, value: {kind: "begin"|"report"|"end", title?: string, message?: string, percentage?: number}}
----@param ctx {client_id: integer}
-vim.lsp.handlers["$/progress"] = function(_, result, ctx)
-	local valid, client, progress, token, kind = validate_progress_params(result, ctx)
-	if not valid then
-		return
-	end
-
-	local cache_entry = progress_cache[token]
-	local notification_id = get_notification_id(token)
-
-	-- Handle begin event
-	if kind == "begin" then
-		cache_entry = handle_begin_progress(client, progress, token)
-		if not cache_entry then
-			return
+local function update_cache_entry(entry, progress, kind)
+	if kind == "report" then
+		entry.spinner_idx = (entry.spinner_idx % #config.spinners) + 1
+		entry.report_count = entry.report_count + 1
+	elseif kind == "end" then
+		entry.spinner_idx = 1
+		entry.percentage = 100
+		if entry.total_work and entry.total_work > 0 then
+			entry.work_done = entry.total_work
 		end
 	end
 
-	-- Must have cache entry for report/end events
-	if not cache_entry then
+	if progress.message then
+		entry.message = progress.message
+	end
+
+	-- Extract numeric progress from the message
+	local done, total = extract_work_progress(progress.message)
+	if done then
+		entry.work_done = done
+		if total then
+			entry.total_work = total
+		end
+		if entry.total_work and entry.total_work > 0 then
+			entry.percentage = clamp((done / entry.total_work) * 100, 0, 100)
+		end
+	end
+
+	-- Direct percentage/value fields
+	if progress.percentage then
+		entry.percentage = clamp(progress.percentage, 0, 100)
+	end
+	if type(progress.value) == "number" then
+		entry.percentage = clamp(progress.value, 0, 100)
+	end
+
+	-- Fallback heuristic when nothing concrete is reported
+	if kind == "report" and not progress.percentage and not done and not (type(progress.value) == "number") then
+		local report_progress = clamp(entry.report_count * 5, 0, 50)
+		local elapsed_ms = (vim.uv.hrtime() - entry.start_time) / 1e6
+		local time_progress = clamp(elapsed_ms / 600, 0, 50)
+		entry.percentage = clamp(report_progress + time_progress, 0, 99)
+	end
+
+	entry.percentage = clamp(entry.percentage, 0, 100)
+end
+
+local function build_notification_content(entry, is_end)
+	-- Defensive defaults – never insert nil into the table
+	local title = entry.title or ""
+	local message = entry.message or ""
+	local server_name = entry.server_name or "LSP"
+
+	local components = {}
+	local spinner = is_end and "✓ " or config.spinners[entry.spinner_idx] or ""
+	table.insert(components, spinner)
+	table.insert(components, "[" .. server_name .. "]")
+
+	if title ~= "" then
+		table.insert(components, title)
+	end
+
+	if entry.total_work and entry.total_work > 0 then
+		table.insert(components, string.format("%d/%d", entry.work_done, entry.total_work))
+	elseif message ~= "" and not is_message_redundant(title, message) then
+		table.insert(components, message)
+	end
+
+	table.insert(components, string.format("(%.0f%%)", entry.percentage))
+	return table.concat(components, " ")
+end
+
+-- -----------------------------------------------------------------
+-- Cleanup utilities
+-- -----------------------------------------------------------------
+local function schedule_cleanup(token, notification_id)
+	local entry = progress_cache[token]
+	if not entry then
 		return
 	end
 
-	-- Update cache entry based on progress kind
-	update_cache_entry(cache_entry, progress, kind)
-
-	-- Show notification
-	local content = build_notification_content(cache_entry, kind == "end")
-	show_notification(content, notification_id, kind == "end")
-
-	-- Schedule cleanup for completed progress
-	if kind == "end" then
-		schedule_cleanup(token, notification_id)
-	end
-end
-
----Function to cleanup all progress
-function M.cleanup()
-	for token, entry in pairs(progress_cache) do
-		-- Stop running libuv timers on exit
-		if entry.timer and not entry.timer:is_closing() then
+	if entry.timer and not entry.timer:is_closing() then
+		pcall(function()
 			entry.timer:stop()
 			entry.timer:close()
-		end
+		end)
+	end
 
-		local id = get_notification_id(token)
-		cleanup_notification(id)
-		progress_cache[token] = nil
+	local timer = vim.uv.new_timer()
+	if not timer then
+		return
+	end
+	entry.timer = timer
+
+	timer:start(
+		config.cleanup_delay_ms,
+		0,
+		vim.schedule_wrap(function()
+			if not timer:is_closing() then
+				cleanup_notification(notification_id)
+				progress_cache[token] = nil
+				pcall(function()
+					timer:close()
+				end)
+			end
+		end)
+	)
+end
+
+-- Periodic purge of entries that never received an "end"
+local function start_stale_purge()
+	if stale_timer and not stale_timer:is_closing() then
+		return
+	end
+	stale_timer = vim.uv.new_timer()
+	if not stale_timer then
+		return
+	end
+
+	stale_timer:start(
+		60000, -- first run after 60 s
+		60000, -- repeat every 60 s
+		vim.schedule_wrap(function()
+			local now = vim.uv.hrtime()
+			for token, entry in pairs(progress_cache) do
+				if entry.start_time then
+					local age_sec = (now - entry.start_time) / 1e9
+					if age_sec > 300 then -- 5 minutes stale
+						local nid = get_notification_id(token)
+						cleanup_notification(nid)
+						if entry.timer and not entry.timer:is_closing() then
+							pcall(function()
+								entry.timer:stop()
+								entry.timer:close()
+							end)
+						end
+						progress_cache[token] = nil
+						debug("Purged stale progress entry for token " .. tostring(token))
+					end
+				end
+			end
+		end)
+	)
+end
+
+local function stop_stale_purge()
+	if stale_timer and not stale_timer:is_closing() then
+		pcall(function()
+			stale_timer:stop()
+			stale_timer:close()
+		end)
+		stale_timer = nil
 	end
 end
 
--- Cleanup on exit
+-- -----------------------------------------------------------------
+-- Public API
+-- -----------------------------------------------------------------
+function M.cleanup()
+	for token, entry in pairs(progress_cache) do
+		if entry.timer and not entry.timer:is_closing() then
+			pcall(function()
+				entry.timer:stop()
+				entry.timer:close()
+			end)
+		end
+		cleanup_notification(get_notification_id(token))
+		progress_cache[token] = nil
+	end
+	stop_stale_purge()
+end
+
+-- -----------------------------------------------------------------
+-- LSP progress handler
+-- -----------------------------------------------------------------
+vim.lsp.handlers["$/progress"] = function(_, result, ctx)
+	local ok, err = pcall(function()
+		local client = vim.lsp.get_client_by_id(ctx.client_id)
+		if not client then
+			return
+		end
+
+		local progress = result.value
+		local token = result.token
+		local kind = progress and progress.kind
+		if not kind then
+			return
+		end
+
+		local entry = progress_cache[token]
+		local nid = get_notification_id(token)
+
+		if kind == "begin" then
+			entry = handle_begin_progress(client, progress, token)
+			if not entry then
+				return
+			end
+		end
+
+		if not entry then
+			return
+		end
+
+		update_cache_entry(entry, progress, kind)
+
+		local content = build_notification_content(entry, kind == "end")
+		show_notification(content, nid, kind == "end")
+
+		-- Optional user‑provided hook
+		if type(config.on_progress) == "function" then
+			pcall(function()
+				config.on_progress(entry, kind == "end")
+			end)
+		end
+
+		if kind == "end" then
+			schedule_cleanup(token, nid)
+		end
+	end)
+
+	if not ok then
+		vim.notify("LSP progress handler error: " .. tostring(err), vim.log.levels.ERROR)
+	end
+end
+
+-- -----------------------------------------------------------------
+-- Autocommands
+-- -----------------------------------------------------------------
+local augroup = vim.api.nvim_create_augroup("LspProgressHandler", { clear = true })
+
 vim.api.nvim_create_autocmd("VimLeavePre", {
-	callback = M.cleanup,
+	group = augroup,
+	callback = function()
+		M.cleanup()
+	end,
 })
 
--- Add autocmd to cleanup on LSP detach
 vim.api.nvim_create_autocmd("LspDetach", {
+	group = augroup,
 	callback = function(args)
 		local client_id = args.data.client_id
 		for token, entry in pairs(progress_cache) do
 			if entry.client_id == client_id then
-				-- Stop running libuv timers on detach
 				if entry.timer and not entry.timer:is_closing() then
-					entry.timer:stop()
-					entry.timer:close()
+					pcall(function()
+						entry.timer:stop()
+						entry.timer:close()
+					end)
 				end
-
-				local id = get_notification_id(token)
-				cleanup_notification(id)
+				cleanup_notification(get_notification_id(token))
 				progress_cache[token] = nil
 			end
 		end
 	end,
 })
+
+-- Start the stale‑entry purge timer when the module loads
+start_stale_purge()
 
 return M
