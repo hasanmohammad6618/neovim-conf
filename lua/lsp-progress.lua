@@ -1,5 +1,5 @@
 -- =================================================================
--- Enhanced LSP Progress Handler (Fixed Brackets + Duplication)
+-- Enhanced LSP Progress Handler (Fixed Brackets + Duplication + Timers)
 -- =================================================================
 
 ---@class LspProgressCacheEntry
@@ -13,6 +13,7 @@
 ---@field start_time number
 ---@field client_id integer
 ---@field server_name string
+---@field timer uv.uv_timer_t|nil  -- Track timer to prevent leaks
 
 ---@class LspProgressHandlerModule: table
 local M = {}
@@ -34,15 +35,15 @@ local function get_notification_id(token)
 end
 
 ---Show notification using Snacks notifier
----@module "snacks"
 ---@param content string
 ---@param id string
 ---@param is_end boolean
 local function show_notification(content, id, is_end)
-	if not (Snacks and Snacks.notifier) then
+	-- Safer global access check for Snacks
+	if type(_G.Snacks) ~= "table" or not _G.Snacks.notifier then
 		return
 	end
-	Snacks.notifier.notify(content, "info", {
+	_G.Snacks.notifier.notify(content, "info", {
 		icon = " ",
 		id = id,
 		timeout = is_end and 1800 or 0,
@@ -53,8 +54,8 @@ end
 ---Clean up notification by ID
 ---@param id string
 local function cleanup_notification(id)
-	if Snacks and Snacks.notifier and type(Snacks.notifier.hide) == "function" then
-		Snacks.notifier.hide(id)
+	if type(_G.Snacks) == "table" and _G.Snacks.notifier and type(_G.Snacks.notifier.hide) == "function" then
+		_G.Snacks.notifier.hide(id)
 	end
 end
 
@@ -212,10 +213,23 @@ end
 ---@param token string|integer
 ---@param notification_id string
 local function schedule_cleanup(token, notification_id)
+	local entry = progress_cache[token]
+	if not entry then
+		return
+	end
+
+	-- Cancel existing timer if one is already running for this token
+	if entry.timer and not entry.timer:is_closing() then
+		entry.timer:stop()
+		entry.timer:close()
+	end
+
 	local timer = vim.uv.new_timer()
 	if not timer then
 		return
 	end
+
+	entry.timer = timer -- Store timer in entry
 
 	timer:start(
 		CLEANUP_DELAY_MS,
@@ -238,6 +252,15 @@ end
 local function handle_begin_progress(client, progress, token)
 	local server_name = get_reliable_server_name(client)
 
+	-- If a token is reused, clear old timer before overwriting
+	if progress_cache[token] and progress_cache[token].timer then
+		local old_timer = progress_cache[token].timer
+		if not old_timer:is_closing() then
+			old_timer:stop()
+			old_timer:close()
+		end
+	end
+
 	local cache_entry = {
 		spinner_idx = 1,
 		title = progress.title or "",
@@ -249,6 +272,7 @@ local function handle_begin_progress(client, progress, token)
 		start_time = vim.uv.hrtime(),
 		client_id = client.id,
 		server_name = server_name,
+		timer = nil,
 	}
 
 	progress_cache[token] = cache_entry
@@ -258,7 +282,7 @@ end
 ---Validate progress parameters
 ---@param result any
 ---@param ctx table
----@return boolean, table|nil, table|nil, string|integer|nil
+---@return boolean, table|nil, table|nil, string|integer|nil, string|nil
 local function validate_progress_params(result, ctx)
 	local client = vim.lsp.get_client_by_id(ctx.client_id)
 	if not client then
@@ -317,7 +341,13 @@ end
 
 ---Function to cleanup all progress
 function M.cleanup()
-	for token in pairs(progress_cache) do
+	for token, entry in pairs(progress_cache) do
+		-- Stop running libuv timers on exit
+		if entry.timer and not entry.timer:is_closing() then
+			entry.timer:stop()
+			entry.timer:close()
+		end
+
 		local id = get_notification_id(token)
 		cleanup_notification(id)
 		progress_cache[token] = nil
@@ -335,6 +365,12 @@ vim.api.nvim_create_autocmd("LspDetach", {
 		local client_id = args.data.client_id
 		for token, entry in pairs(progress_cache) do
 			if entry.client_id == client_id then
+				-- Stop running libuv timers on detach
+				if entry.timer and not entry.timer:is_closing() then
+					entry.timer:stop()
+					entry.timer:close()
+				end
+
 				local id = get_notification_id(token)
 				cleanup_notification(id)
 				progress_cache[token] = nil
