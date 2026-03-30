@@ -92,6 +92,16 @@ return {
 			},
 		})
 
-		vim.lsp.codelens.enable(true)
+		vim.api.nvim_create_autocmd("LspAttach", {
+			callback = function(arg)
+				if vim.bo.filetype == "typst" then
+					vim.lsp.codelens.enable(false)
+				else
+					vim.lsp.codelens.enable(true, {
+						bufnr = arg.buf,
+					})
+				end
+			end,
+		})
 	end,
 }
