@@ -92,6 +92,6 @@ return {
 			},
 		})
 
-		vim.lsp.codelens.enable()
+		vim.lsp.codelens.enable(true)
 	end,
 }
