@@ -21,6 +21,7 @@ return {
 			"toml",
 			"java",
 			"typst",
+			"yaml",
 		}
 
 		local ins_parser = require("nvim-treesitter.config").get_installed("parsers")
