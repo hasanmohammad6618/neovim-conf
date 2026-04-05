@@ -50,7 +50,7 @@ return {
 			"ty",
 			"marksman",
 			"tinymist",
-			"kotlin-lsp",
+			"jdtls",
 			"superhtml",
 			"emmet-language-server",
 		}
