@@ -20,10 +20,16 @@ return {
 				end,
 			},
 			["jdtls"] = {
+				root_markers = { "grind.yml" },
 				settings = {
 					initializationOptions = {
 						settings = {
-							java = {},
+							java = {
+								project = {
+									sourcePaths = { "src/main/java" },
+									referencedLibraries = { "libs/*" },
+								},
+							},
 						},
 					},
 				},

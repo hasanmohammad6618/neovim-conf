@@ -80,18 +80,6 @@ return {
 			},
 		})
 
-		vim.lsp.config("jdtls", {
-			root_markers = { "grind.yml" },
-			settings = {
-				java = {
-					project = {
-						sourcePaths = { "src/main/java" },
-						referencedLibraries = { "libs/*" },
-					},
-				},
-			},
-		})
-
 		vim.lsp.codelens.enable(true)
 	end,
 }
