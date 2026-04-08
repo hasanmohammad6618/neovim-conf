@@ -12,6 +12,8 @@ return {
 			"css",
 			"javascript",
 			"typescript",
+			"tsx",
+			"jsx",
 			"json",
 			"jsdoc",
 			"json5",
