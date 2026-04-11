@@ -19,21 +19,6 @@ return {
 					vim.lsp.handlers["$/progress"](err, result, ctx)
 				end,
 			},
-			["jdtls"] = {
-				root_markers = { "grind.yml" },
-				settings = {
-					initializationOptions = {
-						settings = {
-							java = {
-								project = {
-									sourcePaths = { "src/main/java" },
-									referencedLibraries = { "libs/*" },
-								},
-							},
-						},
-					},
-				},
-			},
 		})
 	end,
 }
