@@ -38,7 +38,6 @@ return {
 				highlights.NvimTreeModifiedIcon = {
 					fg = colors.warning,
 					link = 0,
-					global_link = 0,
 				}
 
 				highlights.DiagnosticUnderlineError.undercurl = nil
@@ -59,7 +58,6 @@ return {
 				highlights.BlinkCmpKindFile = {
 					bg = "NONE",
 					link = 0,
-					global_link = 0,
 				}
 
 				highlights.LazyButtonActive = {
