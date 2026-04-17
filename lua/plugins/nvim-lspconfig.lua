@@ -92,6 +92,37 @@ return {
 			},
 		})
 
+		vim.lsp.config("jsonls", {
+			settings = {
+				json = {
+					schemas = {
+						{
+							fileMatch = { "deno.json" },
+							url = "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json",
+						},
+					},
+				},
+			},
+		})
+
+		vim.lsp.config("denols", {
+			settings = {
+				deno = {
+					inlayHints = {
+						parameterTypes = {
+							enabled = true,
+						},
+						variableTypes = {
+							enabled = true,
+						},
+						enumMemberValues = {
+							enabled = true,
+						},
+					},
+				},
+			},
+		})
+
 		vim.lsp.codelens.enable(true)
 	end,
 }
