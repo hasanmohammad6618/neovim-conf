@@ -44,8 +44,7 @@ return {
 			"clangd",
 			"emmylua_ls", -- will use emmylua_ls when it will become stable
 			"json-lsp",
-			-- "csskit",
-			"css-lsp",
+			"csskit",
 			"taplo",
 			"ruff",
 			"ty",
