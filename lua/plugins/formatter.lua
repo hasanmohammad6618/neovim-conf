@@ -7,7 +7,14 @@ return {
 				lsp_format = "fallback",
 				async = true,
 			},
+			formatters = {
+				csskit = {
+					command = "csskit",
+					args = { "fmt", "$FILENAME" },
+				},
+			},
 			formatters_by_ft = {
+				css = { "csskit" },
 				cpp = { "clang-format" },
 				lua = { "stylua" },
 				python = { "ruff_format" },
