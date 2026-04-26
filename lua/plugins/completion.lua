@@ -9,7 +9,7 @@ return {
 	-- build = 'nix run .#build-plugin',
 
 	config = function()
-		local opt = {
+		require("blink-cmp").setup({
 			signature = {
 				enabled = true,
 				trigger = {
@@ -143,8 +143,7 @@ return {
 					},
 				},
 			},
-		}
-		require("blink-cmp").setup(opt)
+		})
 	end,
 
 	-- LSP servers and clients communicate which features they support through "capabilities".
