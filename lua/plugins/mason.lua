@@ -45,7 +45,7 @@ return {
 			"emmylua_ls", -- will use emmylua_ls when it will become stable
 			"json-lsp",
 			"csskit",
-			"taplo",
+			"tombi",
 			"ruff",
 			"ty",
 			"marksman",
