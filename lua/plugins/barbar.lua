@@ -33,10 +33,6 @@ return {
 						align = "center", -- *optionally* specify an alignment (either 'left', 'center', or 'right')
 					},
 					snacks_picker_list = { event = "BufWipeout", text = "File Explorer", align = "center" },
-					-- Or, specify the event which the sidebar executes when leaving:
-					["neo-tree"] = { event = "BufWipeout", text = "File Explorer", align = "center" },
-					-- Or, specify all three
-					Outline = { event = "BufWinLeave", text = "symbols-outline", align = "right" },
 				},
 			})
 		end,
