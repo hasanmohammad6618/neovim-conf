@@ -53,6 +53,7 @@ return {
 			"jdtls",
 			"superhtml",
 			"emmet-language-server",
+			"lemminx",
 		}
 
 		local other_pkg = {
