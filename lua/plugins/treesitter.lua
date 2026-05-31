@@ -36,12 +36,6 @@ return {
 				table.insert(parsers_to_ins, p)
 			end
 		end
-		local ms = require("mason-registry")
-		ms.refresh(function()
-			if ms.is_installed("tree-sitter-cli") then
-				require("nvim-treesitter").install(parsers_to_ins)
-			end
-		end)
 
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = parsers,

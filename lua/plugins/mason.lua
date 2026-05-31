@@ -60,7 +60,6 @@ return {
 			"stylua",
 			"typstyle",
 			"uv",
-			"tree-sitter-cli",
 			"gitui",
 		}
 		local mpkgs = {}
