@@ -37,6 +37,8 @@ return {
 			end
 		end
 
+		require("nvim-treesitter.install").install(parsers_to_ins)
+
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = parsers,
 			callback = function(arg)
