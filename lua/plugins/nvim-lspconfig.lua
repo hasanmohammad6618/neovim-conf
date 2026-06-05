@@ -8,13 +8,6 @@ return {
 					runtime = {
 						version = "LuaJIT",
 					},
-					workspace = {
-						library = {
-							{
-								path = "/usr/share/nvim/runtime/",
-							},
-						},
-					},
 				},
 			},
 		})
