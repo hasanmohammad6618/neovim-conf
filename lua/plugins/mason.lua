@@ -42,7 +42,8 @@ return {
 			"deno",
 			"rust-analyzer",
 			"clangd",
-			"emmylua_ls", -- will use emmylua_ls when it will become stable
+			-- "emmylua_ls", -- will use emmylua_ls when it will become stable
+			"lua-language-server",
 			"json-lsp",
 			"css-lsp",
 			"tombi",
