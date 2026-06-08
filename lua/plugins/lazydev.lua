@@ -1,6 +1,6 @@
 return {
 	{
-		"hasanmohammad6618/lazydev.nvim",
+		"folke/lazydev.nvim",
 		ft = "lua", -- only load on lua files
 		opts = {
 			library = {
