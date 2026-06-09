@@ -9,7 +9,6 @@ return {
 			},
 			formatters_by_ft = {
 				cpp = { "clang-format" },
-				lua = { "stylua" },
 				python = { "ruff_format" },
 				-- Conform will run multiple formatters sequentially
 				-- python = { "isort", "black" },
