@@ -7,6 +7,10 @@ return {
 				emmylua = {
 					runtime = {
 						version = "LuaJIT",
+						requirePattern = {
+							"?.lua",
+							"?/init.lua",
+						},
 					},
 					workspace = {
 						library = {
