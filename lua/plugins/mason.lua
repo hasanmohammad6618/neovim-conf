@@ -56,7 +56,7 @@ return {
 			"lemminx",
 		}
 
-		local other_pkg = { "typstyle", "uv", "gitui", "stylua" }
+		local other_pkg = { "typstyle", "uv", "gitui" }
 		local mpkgs = {}
 		table.move(lsp_pkg, 1, #lsp_pkg, 1, mpkgs)
 		table.move(other_pkg, 1, #other_pkg, #mpkgs + 1, mpkgs)
