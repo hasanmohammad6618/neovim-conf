@@ -29,14 +29,26 @@ return {
             }
         )
 
-        vim.keymap.set({ "n", "x" }, "go", function () return require("opencode").operator("@this ") end, {
-            desc = "Append range to OpenCode",
-            expr = true
-        })
-        vim.keymap.set("n", "goo", function () return require("opencode").operator("@this ") .. "_" end, {
-            desc = "Append line to OpenCode",
-            expr = true
-        })
+        vim.keymap.set(
+            { "n", "x" }, "go",
+            function ()
+                return require("opencode").operator("@this ")
+            end,
+            {
+                desc = "Append range to OpenCode",
+                expr = true
+            }
+        )
+        vim.keymap.set(
+            "n", "goo",
+            function ()
+                return require("opencode").operator("@this ") .. "_"
+            end,
+            {
+                desc = "Append line to OpenCode",
+                expr = true
+            }
+        )
 
         vim.keymap.set(
             "n", "<S-C-u>",

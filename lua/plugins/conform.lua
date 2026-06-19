@@ -2,13 +2,12 @@ return {
     "stevearc/conform.nvim",
     opts = {},
     config = function ()
-                 require("conform").setup({
+        require("conform").setup({
             format_after_save = {
                 lsp_format = "fallback",
                 async = true
             },
             formatters_by_ft = {
-                lua = { "stylua" },
                 cpp = { "clang-format" },
                 python = { "ruff_format" },
                 -- Conform will run multiple formatters sequentially
