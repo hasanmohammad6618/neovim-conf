@@ -28,6 +28,6 @@ return {
         { "<leader>lA", "<cmd>LiveServerStopAll<cr>", desc = "Stop all" }
     },
     config = function (_, opts)
-        require("live-server").setup(opts)
+        require("live_server").setup(opts)
     end
 }
