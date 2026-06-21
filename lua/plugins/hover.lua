@@ -7,8 +7,8 @@ return {
             providers = {
                 'hover.providers.diagnostic',
                 'hover.providers.lsp',
-                'hover.providers.dap',
-                'hover.providers.man'
+                'hover.providers.dap'
+                -- 'hover.providers.man'
                 -- 'hover.providers.dictionary'
                 -- Optional, disabled by default:
                 -- 'hover.providers.gh'

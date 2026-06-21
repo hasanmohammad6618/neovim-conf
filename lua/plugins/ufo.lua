@@ -9,9 +9,9 @@ return {
             preview = {},
             close_fold_kinds_for_ft = {},
             enable_get_fold_virt_text = true,
-            provider_selector = function (bufnr, filetype, _)
+            provider_selector = function (buf, filetype, _)
                 if filetype == "snacks_dashboard" then
-                    require("ufo").detach(bufnr)
+                    require("ufo").detach(buf)
                 else
                     if filetype == "NvimTree" then
                         vim.wo.statuscolumn = ""
