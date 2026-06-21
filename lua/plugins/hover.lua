@@ -11,8 +11,8 @@ return {
                 -- 'hover.providers.man'
                 -- 'hover.providers.dictionary'
                 -- Optional, disabled by default:
-                -- 'hover.providers.gh'
-                -- 'hover.providers.gh_user',
+                -- 'hover.providers.gh',
+                -- 'hover.providers.gh_user'
                 -- 'hover.providers.jira',
                 -- 'hover.providers.fold_preview',
                 -- 'hover.providers.highlight',
