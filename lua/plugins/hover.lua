@@ -18,7 +18,9 @@ return {
                 -- 'hover.providers.highlight',
             },
             preview_opts = {
-                border = 'double'
+                border = 'double',
+                height = 12,
+                width = 70
             },
             -- Whether the contents of a currently open hover window should be moved
   -- to a :h preview-window when pressing the hover keymap.
