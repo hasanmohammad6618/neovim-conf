@@ -27,7 +27,7 @@ return {
         { "<leader>lS", "<cmd>LiveServerStop<cr>", desc = "Stop one (pick port)" },
         { "<leader>lA", "<cmd>LiveServerStopAll<cr>", desc = "Stop all" }
     },
-    config = function (_, opts)
-        require("live_server").setup(opts)
+    config = function (_, opt)
+        require("live_server").setup(opt)
     end
 }
