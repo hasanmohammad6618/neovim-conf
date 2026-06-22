@@ -139,7 +139,17 @@ local function update_entry(client, token, progress, kind)
     if kind == "end" then
         entry.spinner_idx = 1
         entry.percentage = 100
-        if entry.total_work and entry.total_work > 0 then entry.work_done = entry.total_work end
+        if entry.total_work and entry.total_work > 0 then
+            entry.work_done = entry.total_work
+
+            -- FIX: Update the message text to reflect the final progress (e.g., 19/21 -> 21/21)
+            if entry.message and entry.message ~= "" then
+                local final_slash = string.format("%d/%d", entry.total_work, entry.total_work)
+                local final_of = string.format("%d of %d", entry.total_work, entry.total_work)
+                entry.message = entry.message:gsub("%d+%s*/%s*%d+", final_slash, 1)
+                entry.message = entry.message:gsub("%d+%s+of%s+%d+", final_of, 1)
+            end
+        end
     end
 
     entry.percentage = clamp(entry.percentage, 0, 100)
@@ -218,7 +228,7 @@ local function purge_stale()
 end
 
 function M.cleanup()
-    for key, entry in pairs(cache) do
+    for _, entry in pairs(cache) do
         if entry.timer and not entry.timer:is_closing() then
             pcall(function ()
                 entry.timer:stop()
