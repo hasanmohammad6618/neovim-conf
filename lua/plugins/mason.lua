@@ -67,21 +67,5 @@ return {
                 end
             end
         end)
-
-        vim.api.nvim_create_autocmd("LspAttach", {
-            callback = function (args)
-                local client_name = vim.lsp.get_client_by_id(args.data.client_id).name
-                local bufnr = args.buf
-                if client_name == "lua_ls" or client_name == "rust_analyzer" then
-                    vim.defer_fn(function ()
-                        vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
-                    end, 3000)
-                else
-                    vim.defer_fn(function ()
-                        vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
-                    end, 1000)
-                end
-            end
-        })
     end
 }
