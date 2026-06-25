@@ -124,5 +124,6 @@ return {
         })
 
         vim.lsp.codelens.enable(true)
+        vim.lsp.inlay_hint.enable(true)
     end
 }
