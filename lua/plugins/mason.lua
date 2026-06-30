@@ -40,7 +40,7 @@ return {
         })
         local lsp_pkg = {
             "deno", "rust-analyzer", "clangd", "emmylua_ls", "json-lsp", "csskit", "tombi", "ruff", "ty", "marksman",
-            "tinymist", "jdtls", "superhtml", "emmet-language-server", "lemminx"
+            "tinymist", "kpm-lsp", "superhtml", "emmet-language-server", "lemminx"
         }
 
         local other_pkg = { "typstyle", "uv", "gitui" }
