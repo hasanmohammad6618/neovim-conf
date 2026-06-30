@@ -113,8 +113,10 @@ return {
 
         vim.api.nvim_create_autocmd('LspProgress', {
             callback = function (ev)
-                if ev.data.params.value.kind == 'end' then
-                    vim.lsp.inlay_hint.enable(true, { bufnr = ev.buf })
+                local kind = ev.data.params.value.kind
+                if kind == 'end' or kind == 'success' then
+                    vim.lsp.inlay_hint.enable(true)
+                    vim.lsp.codelens.enable(true)
                 end
             end
         })
