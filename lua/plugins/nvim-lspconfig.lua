@@ -111,7 +111,12 @@ return {
             }
         })
 
-        vim.lsp.codelens.enable(true)
-        vim.lsp.inlay_hint.enable(true)
+        vim.api.nvim_create_autocmd('LspProgress', {
+            callback = function (ev)
+                if ev.data.params.value.kind == 'end' then
+                    vim.lsp.inlay_hint.enable(true, { bufnr = ev.buf })
+                end
+            end
+        })
     end
 }

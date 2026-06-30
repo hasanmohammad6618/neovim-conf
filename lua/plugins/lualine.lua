@@ -33,7 +33,7 @@ return {
                 lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
                 lualine_c = {
                     {
-                        "lsp_status",
+                        'lsp_status',
                         icon = "" -- f013
                     }
                 },
@@ -49,7 +49,12 @@ return {
             inactive_sections = {
                 lualine_a = { { "mode", icon = "" } },
                 lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
-                lualine_c = { "lsp_status" },
+                lualine_c = {
+                    {
+                        'lsp_status',
+                        icon = "" -- f013
+                    }
+                },
                 lualine_x = {
                     "diagnostics",
                     "filesize",
