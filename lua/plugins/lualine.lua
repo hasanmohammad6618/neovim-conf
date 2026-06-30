@@ -34,7 +34,15 @@ return {
                 lualine_c = {
                     {
                         'lsp_status',
-                        icon = "" -- f013
+                        icon = '', -- f013
+                        symbols = {
+                            -- Standard unicode symbols to cycle through for LSP progress:
+                            spinner = { '◜', '◝', '◝', '◞', '◟', '◟', '◟', '◜' },
+                            -- Standard unicode symbol for when LSP is done:
+                            done = '✓',
+                            -- Delimiter inserted between LSP names:
+                            separator = ' '
+                        }
                     }
                 },
                 lualine_x = {
@@ -49,12 +57,6 @@ return {
             inactive_sections = {
                 lualine_a = { { "mode", icon = "" } },
                 lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
-                lualine_c = {
-                    {
-                        'lsp_status',
-                        icon = "" -- f013
-                    }
-                },
                 lualine_x = {
                     "diagnostics",
                     "filesize",
