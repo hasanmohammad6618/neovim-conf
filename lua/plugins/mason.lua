@@ -53,17 +53,7 @@ return {
             for _, pkg_name in ipairs(mpkgs) do
                 local pkg = mr.get_package(pkg_name)
                 if not pkg:is_installed() then
-                    pkg:install({}, function (success, _)
-                        if success then
-                            vim.defer_fn(function ()
-                                local instance = require("mason.ui.instance")
-                                -- Only notify if Mason UI is NOT open
-                                if instance.window.is_open() == false then
-                                    return
-                                end
-                            end, 5)
-                        end
-                    end)
+                    pkg:install()
                 end
             end
         end)
