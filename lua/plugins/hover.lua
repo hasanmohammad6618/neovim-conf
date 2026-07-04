@@ -6,8 +6,8 @@ return {
   --- @type (string|Hover.Config.Provider)[]
             providers = {
                 'hover.providers.diagnostic',
-                'hover.providers.lsp',
-                'hover.providers.dap'
+                'hover.providers.lsp'
+                -- 'hover.providers.dap',
                 -- 'hover.providers.man'
                 -- 'hover.providers.dictionary'
                 -- Optional, disabled by default:
