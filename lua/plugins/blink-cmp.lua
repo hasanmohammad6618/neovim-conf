@@ -64,8 +64,8 @@ return {
                     scrolloff = 0,
                     border = "double",
                     draw = {
-                        padding = 1,
                         gap = 1,
+                        padding = 1,
                         treesitter = { "lsp" }
                     }
                 },
