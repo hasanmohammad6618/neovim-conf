@@ -5,7 +5,8 @@ return {
     config = function ()
         local parsers = {
             "lua", "rust", "c", "cpp", "html", "css", "javascript", "typescript", "tsx", "jsx", "json", "jsdoc", "json5",
-            "python", "markdown", "markdown_inline", "toml", "java", "typst", "yaml", "xml"
+            "python", "markdown", "markdown_inline", "toml", "java", "typst", "yaml", "xml", "gitignore",
+            "gitattributes", "gitcommit", "git_config", "git_rebase"
         }
 
         local ins_parser = require("nvim-treesitter.config").get_installed("parsers")
