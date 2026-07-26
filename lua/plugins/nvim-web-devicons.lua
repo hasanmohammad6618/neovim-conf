@@ -238,6 +238,10 @@ return {
                 ["jsonlz4"] = {
                     icon = "󰈹",
                     name = "JSONLZ4"
+                },
+                ["sh"] = {
+                    icon = "",
+                    color = "#f9e2af"
                 }
             },
             -- same as `override` but specifically for operating system
