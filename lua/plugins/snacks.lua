@@ -64,7 +64,7 @@ return {
                 sections = {
                     { section = "header" },
                     { section = "keys", gap = 1, padding = 1 },
-                    { Snacks.dashboard.sections.startup({ icon = "  " }) }
+                    { Snacks.dashboard.sections.startup({ icon = "  " }) }
                 },
                 enabled = true,
                 preset = {

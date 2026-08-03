@@ -30,11 +30,11 @@ return {
             },
             sections = {
                 lualine_a = { { "mode", icon = "" } },
-                lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
+                lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
                 lualine_c = {
                     {
                         'lsp_status',
-                        icon = '', -- f013
+                        icon = '', -- f013
                         symbols = {
                             -- Standard unicode symbols to cycle through for LSP progress:
                             spinner = { '◜', '◝', '◝', '◞', '◟', '◟', '◟', '◜' },
@@ -52,11 +52,11 @@ return {
                     "filetype"
                 },
                 lualine_y = { "progress" },
-                lualine_z = { { "location", icon = "" } }
+                lualine_z = { { "location", icon = "" } }
             },
             inactive_sections = {
                 lualine_a = { { "mode", icon = "" } },
-                lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
+                lualine_b = { { "branch", icon = "" }, { "diff", icon = "" } },
                 lualine_x = {
                     "diagnostics",
                     "filesize",
@@ -64,7 +64,7 @@ return {
                     "filetype"
                 },
                 lualine_y = { "progress" },
-                lualine_z = { { "location", icon = "" } }
+                lualine_z = { { "location", icon = "" } }
             },
             tabline = {},
             winbar = {},
