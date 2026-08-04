@@ -77,7 +77,7 @@ return {
                         },
                         { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
                         {
-                            icon = " ",
+                            icon = " ",
                             key = "g",
                             desc = "Find Text",
                             action = ":lua Snacks.dashboard.pick('live_grep')"
@@ -89,7 +89,7 @@ return {
                             action = ":lua Snacks.dashboard.pick('oldfiles')"
                         },
                         {
-                            icon = " ",
+                            icon = " ",
                             key = "c",
                             desc = "Config",
                             action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})"
@@ -128,7 +128,7 @@ return {
                 icons = {
                     diagnostics = {
                         Error = " ",
-                        Hint = " ",
+                        Hint = " ",
                         Warn = " ",
                         Info = " "
                     },
@@ -220,8 +220,8 @@ return {
             notifier = {
                 enabled = true,
                 icons = {
-                    debug = " ",
-                    info = " ",
+                    debug = " ",
+                    info = " ",
                     error = " ",
                     warn = " "
                 }
