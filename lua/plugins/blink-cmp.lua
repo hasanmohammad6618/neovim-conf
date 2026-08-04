@@ -104,7 +104,7 @@ return {
 				-- Adjusts spacing to ensure icons are aligned
                 nerd_font_variant = "normal",
                 kind_icons = {
-                    Text = "󰦨",
+                    Text = "",
                     Method = "",
                     Function = "",
                     Constructor = "",
