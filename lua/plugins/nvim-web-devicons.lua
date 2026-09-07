@@ -102,6 +102,9 @@ return {
                 ["exclude"] = {
                     icon = "",
                     name = "Exclude"
+                },
+                ["justfile"] = {
+                    icon = ""
                 }
             },
             -- same as `override` but specifically for overrides by extension
